@@ -3,6 +3,18 @@
   "name": "Anime-Planet Translation Checker",
   "version": "0.1.0",
   "description": "Adds English translation status and completion information to Anime-Planet.",
+
+  "background": {
+    "scripts": [
+      "src/background.js"
+    ],
+    "service_worker": "src/background.js"
+  },
+
+  "host_permissions": [
+    "https://api.mangaupdates.com/*"
+  ],
+
   "content_scripts": [
     {
       "matches": [
@@ -17,13 +29,15 @@
       "run_at": "document_idle"
     }
   ],
+
   "web_accessible_resources": [
     {
       "resources": [
         "src/main.js",
         "src/animeplanet.js",
         "src/storage.js",
-        "src/ui.js"
+        "src/ui.js",
+        "src/mangaupdates.js"
       ],
       "matches": [
         "https://www.anime-planet.com/*"
