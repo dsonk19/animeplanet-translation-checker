@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Anime-Planet Translation Checker",
+  "version": "0.1.0",
+  "description": "Adds English translation status and completion information to Anime-Planet.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.anime-planet.com/*"
+      ],
+      "css": [
+        "src/styles.css"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/main.js",
+        "src/animeplanet.js",
+        "src/storage.js",
+        "src/ui.js"
+      ],
+      "matches": [
+        "https://www.anime-planet.com/*"
+      ]
+    }
+  ]
+}
