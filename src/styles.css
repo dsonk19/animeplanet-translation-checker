@@ -1,0 +1,87 @@
+.ap-translation-panel {
+  --ap-status-color: #667085;
+  box-sizing: border-box;
+  clear: both;
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-left: 4px solid var(--ap-status-color);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #252525;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ap-translation-panel__status {
+  color: var(--ap-status-color);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ap-translation-panel__details {
+  margin-top: 2px;
+  color: #555;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.ap-translation-panel[data-status="complete"] {
+  --ap-status-color: #16803c;
+  background: #f1fbf4;
+}
+
+.ap-translation-panel[data-status="ongoing"] {
+  --ap-status-color: #1769aa;
+  background: #f2f8fd;
+}
+
+.ap-translation-panel[data-status="licensed"] {
+  --ap-status-color: #7251b5;
+  background: #f7f3fc;
+}
+
+.ap-translation-panel[data-status="stalled"] {
+  --ap-status-color: #a15c00;
+  background: #fff8eb;
+}
+
+.ap-translation-panel[data-status="unlicensed"] {
+  --ap-status-color: #a33a3a;
+  background: #fff5f5;
+}
+
+.ap-translation-panel[data-status="unavailable"],
+.ap-translation-panel[data-status="unknown"] {
+  --ap-status-color: #667085;
+  background: #f7f7f8;
+}
+
+.ap-translation-panel[data-status="loading"] {
+  --ap-status-color: #777;
+  background: #f7f7f8;
+}
+
+.ap-translation-panel[data-status="error"] {
+  --ap-status-color: #b42318;
+  background: #fff1f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ap-translation-panel {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(35, 35, 38, 0.95);
+    color: #f1f1f1;
+  }
+
+  .ap-translation-panel__details {
+    color: #c8c8c8;
+  }
+
+  .ap-translation-panel[data-status] {
+    background: rgba(35, 35, 38, 0.95);
+  }
+}
