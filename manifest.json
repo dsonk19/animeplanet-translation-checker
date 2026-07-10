@@ -4,16 +4,30 @@
   "version": "0.1.0",
   "description": "Adds English translation status and completion information to Anime-Planet.",
 
+  "permissions": [
+    "declarativeNetRequest"
+  ],
+
+  "host_permissions": [
+    "https://api.mangaupdates.com/*"
+  ],
+
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "mangaupdates_headers",
+        "enabled": true,
+        "path": "network-rules.json"
+      }
+    ]
+  },
+
   "background": {
     "scripts": [
       "src/background.js"
     ],
     "service_worker": "src/background.js"
   },
-
-  "host_permissions": [
-    "https://api.mangaupdates.com/*"
-  ],
 
   "content_scripts": [
     {
