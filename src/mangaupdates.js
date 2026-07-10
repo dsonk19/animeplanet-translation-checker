@@ -1,7 +1,48 @@
-const API_BASE_URL =
-  "https://api.mangaupdates.com/v1";
+const extensionApi =
+  globalThis.browser ?? globalThis.chrome;
 
-const REQUEST_TIMEOUT = 15000;
+function sendRuntimeMessage(message) {
+  if (globalThis.browser?.runtime?.sendMessage) {
+    return globalThis.browser.runtime.sendMessage(message);
+  }
+
+  return new Promise((resolve, reject) => {
+    globalThis.chrome.runtime.sendMessage(
+      message,
+      response => {
+        const error =
+          globalThis.chrome.runtime.lastError;
+
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+
+        resolve(response);
+      }
+    );
+  });
+}
+
+async function fetchJson(path, options = {}) {
+  const response = await sendRuntimeMessage({
+    type: "animeplanet-mangaupdates-request",
+    path,
+    options: {
+      method: options.method || "GET",
+      body: options.body
+    }
+  });
+
+  if (!response?.ok) {
+    throw new Error(
+      response?.error ||
+      "MangaUpdates request failed."
+    );
+  }
+
+  return response.data;
+}
 
 function normalizeTitle(title) {
   return String(title || "")
@@ -33,7 +74,8 @@ function getTitleScore(searchTitle, candidateTitle) {
   }
 
   const searchWords = new Set(search.split(" "));
-  const candidateWords = new Set(candidate.split(" "));
+  const candidateWords =
+    new Set(candidate.split(" "));
 
   const sharedWords = [...searchWords].filter(word =>
     candidateWords.has(word)
@@ -63,8 +105,9 @@ function chooseBestSearchResult(results, title) {
 
   for (const result of results) {
     const score = Math.max(
-      ...getCandidateTitles(result).map(candidate =>
-        getTitleScore(title, candidate)
+      ...getCandidateTitles(result).map(
+        candidate =>
+          getTitleScore(title, candidate)
       ),
       0
     );
@@ -75,56 +118,20 @@ function chooseBestSearchResult(results, title) {
     }
   }
 
-  /*
-   * Avoid automatically attaching a clearly unrelated
-   * MangaUpdates result to an Anime-Planet title.
-   */
-  return bestScore >= 40 ? bestResult : null;
-}
-
-async function fetchJson(url, options = {}) {
-  const controller = new AbortController();
-
-  const timeout = window.setTimeout(() => {
-    controller.abort();
-  }, REQUEST_TIMEOUT);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Accept: "application/json",
-        ...(options.body
-          ? {
-              "Content-Type": "application/json"
-            }
-          : {}),
-        ...options.headers
-      },
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `MangaUpdates request failed: ${response.status}`
-      );
-    }
-
-    return await response.json();
-  } finally {
-    window.clearTimeout(timeout);
-  }
+  return bestScore >= 40
+    ? bestResult
+    : null;
 }
 
 async function searchSeries(title) {
   const response = await fetchJson(
-    `${API_BASE_URL}/series/search`,
+    "/series/search",
     {
       method: "POST",
-      body: JSON.stringify({
+      body: {
         search: title,
         stype: "title"
-      })
+      }
     }
   );
 
@@ -137,7 +144,7 @@ async function searchSeries(title) {
 
 async function getSeriesDetails(seriesId) {
   return fetchJson(
-    `${API_BASE_URL}/series/${seriesId}`
+    `/series/${encodeURIComponent(seriesId)}`
   );
 }
 
@@ -161,9 +168,12 @@ function parseStatusCount(status, unit) {
     "i"
   );
 
-  const match = String(status).match(expression);
+  const match =
+    String(status).match(expression);
 
-  return match ? toNumber(match[1]) : null;
+  return match
+    ? toNumber(match[1])
+    : null;
 }
 
 function getEnglishPublisher(publishers) {
@@ -212,17 +222,21 @@ function getAlternateTitles(series) {
 }
 
 export async function lookupMangaUpdates(title) {
-  const searchResult = await searchSeries(title);
+  const searchResult =
+    await searchSeries(title);
 
-  if (!searchResult?.record?.series_id) {
+  const seriesId =
+    searchResult?.record?.series_id;
+
+  if (!seriesId) {
     return null;
   }
 
-  const series = await getSeriesDetails(
-    searchResult.record.series_id
-  );
+  const series =
+    await getSeriesDetails(seriesId);
 
-  const originalStatus = series?.status || "";
+  const originalStatus =
+    series?.status || "";
 
   return {
     title:
@@ -230,10 +244,10 @@ export async function lookupMangaUpdates(title) {
       searchResult.record.title ||
       title,
 
-    alternateTitles: getAlternateTitles(series),
+    alternateTitles:
+      getAlternateTitles(series),
 
-    mangaUpdatesId:
-      searchResult.record.series_id,
+    mangaUpdatesId: seriesId,
 
     sourceMatchTitle:
       searchResult.hit_title || "",
@@ -271,7 +285,9 @@ export async function lookupMangaUpdates(title) {
       series?.licensed === true,
 
     officialEnglishPublisher:
-      getEnglishPublisher(series?.publishers),
+      getEnglishPublisher(
+        series?.publishers
+      ),
 
     notes:
       series?.completed === true
