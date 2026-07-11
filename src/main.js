@@ -143,15 +143,20 @@ async function processMangaLink(link) {
         storedManga
       );
 
-      const isFresh =
-        isStoredMangaFresh(storedManga);
+     const hasUsableStatus =
+  storedManga.translationStatus &&
+  storedManga.translationStatus !== "unknown";
 
-      panel.dataset.needsRefresh =
-        String(!isFresh);
+const isFresh =
+  hasUsableStatus &&
+  isStoredMangaFresh(storedManga);
 
-      if (isFresh) {
-        return;
-      }
+panel.dataset.needsRefresh =
+  String(!isFresh);
+
+if (isFresh) {
+  return;
+}
     }
 
     const lookupResult =
