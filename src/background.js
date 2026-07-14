@@ -92,14 +92,17 @@ async function handleMangaUpdatesRequest(message) {
 }
 
 extensionApi.runtime.onMessage.addListener(
-  message => {
+  (message, sender, sendResponse) => {
     if (
       message?.type !== MESSAGE_TYPE
     ) {
       return false;
     }
 
-    return handleMangaUpdatesRequest(message);
+    handleMangaUpdatesRequest(message)
+      .then(sendResponse);
+
+    return true;
   }
 );
 
