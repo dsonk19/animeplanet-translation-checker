@@ -1,26 +1,67 @@
 const extensionApi =
   globalThis.browser ?? globalThis.chrome;
 
+const MESSAGE_PORT_NAME =
+  "animeplanet-mangaupdates";
+
+const MESSAGE_TIMEOUT = 20000;
+
 function sendRuntimeMessage(message) {
-  if (globalThis.browser?.runtime?.sendMessage) {
-    return globalThis.browser.runtime.sendMessage(message);
-  }
-
   return new Promise((resolve, reject) => {
-    globalThis.chrome.runtime.sendMessage(
-      message,
-      response => {
-        const error =
-          globalThis.chrome.runtime.lastError;
+    const port = extensionApi.runtime.connect({
+      name: MESSAGE_PORT_NAME
+    });
 
-        if (error) {
-          reject(new Error(error.message));
-          return;
-        }
+    let settled = false;
 
-        resolve(response);
+    const cleanup = () => {
+      globalThis.clearTimeout(timeout);
+      port.onMessage.removeListener(onMessage);
+      port.onDisconnect.removeListener(onDisconnect);
+    };
+
+    const finish = (action, value) => {
+      if (settled) {
+        return;
       }
-    );
+
+      settled = true;
+      cleanup();
+      action(value);
+    };
+
+    const onMessage = response => {
+      finish(resolve, response);
+      port.disconnect();
+    };
+
+    const onDisconnect = () => {
+      const error =
+        extensionApi.runtime.lastError;
+
+      finish(
+        reject,
+        new Error(
+          error?.message ||
+          "MangaUpdates connection closed before responding."
+        )
+      );
+    };
+
+    const timeout = globalThis.setTimeout(() => {
+      finish(
+        reject,
+        new Error(
+          "MangaUpdates background response timed out."
+        )
+      );
+
+      port.disconnect();
+    }, MESSAGE_TIMEOUT);
+
+    port.onMessage.addListener(onMessage);
+    port.onDisconnect.addListener(onDisconnect);
+    port.postMessage(message);
   });
 }
 
