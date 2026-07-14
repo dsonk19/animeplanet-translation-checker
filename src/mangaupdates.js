@@ -1,78 +1,28 @@
-const REQUEST_EVENT =
-  "ap-translation-checker-request";
+let requestHandler = null;
 
-const RESPONSE_EVENT =
-  "ap-translation-checker-response";
+export function setMangaUpdatesRequestHandler(
+  handler
+) {
+  if (typeof handler !== "function") {
+    throw new TypeError(
+      "The MangaUpdates request handler must be a function."
+    );
+  }
 
-const MESSAGE_TIMEOUT = 20000;
-
-let nextRequestId = 1;
+  requestHandler = handler;
+}
 
 function sendRuntimeMessage(message) {
-  return new Promise((resolve, reject) => {
-    const requestId =
-      `${Date.now()}-${nextRequestId}`;
-
-    nextRequestId += 1;
-
-    const cleanup = () => {
-      globalThis.clearTimeout(timeout);
-      document.removeEventListener(
-        RESPONSE_EVENT,
-        onResponse
-      );
-    };
-
-    const onResponse = event => {
-      let detail;
-
-      try {
-        detail = JSON.parse(event.detail);
-      } catch {
-        return;
-      }
-
-      if (detail.requestId !== requestId) {
-        return;
-      }
-
-      cleanup();
-
-      if (detail.error) {
-        reject(new Error(detail.error));
-        return;
-      }
-
-      resolve(detail.response);
-    };
-
-    const timeout = globalThis.setTimeout(() => {
-      cleanup();
-
-      reject(
-        new Error(
-          "MangaUpdates content bridge timed out."
-        )
-      );
-    }, MESSAGE_TIMEOUT);
-
-    document.addEventListener(
-      RESPONSE_EVENT,
-      onResponse
-    );
-
-    document.dispatchEvent(
-      new CustomEvent(
-        REQUEST_EVENT,
-        {
-          detail: JSON.stringify({
-            requestId,
-            message
-          })
-        }
+  if (!requestHandler) {
+    return Promise.reject(
+      new Error(
+        "The MangaUpdates request bridge is not ready."
       )
     );
-  });
+  }
+
+  return Promise.resolve()
+    .then(() => requestHandler(message));
 }
 
 async function fetchJson(path, options = {}) {
