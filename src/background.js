@@ -6,6 +6,12 @@ const API_BASE_URL =
 
 const REQUEST_TIMEOUT = 15000;
 
+const MESSAGE_TYPE =
+  "animeplanet-mangaupdates-request";
+
+const MESSAGE_PORT_NAME =
+  "animeplanet-mangaupdates";
+
 async function fetchMangaUpdates(
   path,
   options = {}
@@ -61,35 +67,63 @@ async function fetchMangaUpdates(
   }
 }
 
+async function handleMangaUpdatesRequest(message) {
+  try {
+    return {
+      ok: true,
+      data: await fetchMangaUpdates(
+        message.path,
+        message.options
+      )
+    };
+  } catch (error) {
+    console.error(
+      "MangaUpdates background request failed:",
+      error
+    );
+
+    return {
+      ok: false,
+      error:
+        error?.message ||
+        "Unknown MangaUpdates error"
+    };
+  }
+}
+
 extensionApi.runtime.onMessage.addListener(
   message => {
     if (
-      message?.type !==
-      "animeplanet-mangaupdates-request"
+      message?.type !== MESSAGE_TYPE
     ) {
       return false;
     }
 
-    return fetchMangaUpdates(
-      message.path,
-      message.options
-    )
-      .then(data => ({
-        ok: true,
-        data
-      }))
-      .catch(error => {
-        console.error(
-          "MangaUpdates background request failed:",
-          error
-        );
+    return handleMangaUpdatesRequest(message);
+  }
+);
 
-        return {
-          ok: false,
-          error:
-            error?.message ||
-            "Unknown MangaUpdates error"
-        };
-      });
+extensionApi.runtime.onConnect.addListener(
+  port => {
+    if (port.name !== MESSAGE_PORT_NAME) {
+      return;
+    }
+
+    port.onMessage.addListener(message => {
+      if (message?.type !== MESSAGE_TYPE) {
+        return;
+      }
+
+      handleMangaUpdatesRequest(message)
+        .then(response => {
+          port.postMessage(response);
+        })
+        .catch(error => {
+          console.error(
+            "Could not send MangaUpdates response:",
+            error
+          );
+        });
+    });
   }
 );
