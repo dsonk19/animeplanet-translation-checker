@@ -62,7 +62,7 @@ async function fetchMangaUpdates(
 }
 
 extensionApi.runtime.onMessage.addListener(
-  (message, sender, sendResponse) => {
+  message => {
     if (
       message?.type !==
       "animeplanet-mangaupdates-request"
@@ -70,30 +70,26 @@ extensionApi.runtime.onMessage.addListener(
       return false;
     }
 
-    fetchMangaUpdates(
+    return fetchMangaUpdates(
       message.path,
       message.options
     )
-      .then(data => {
-        sendResponse({
-          ok: true,
-          data
-        });
-      })
+      .then(data => ({
+        ok: true,
+        data
+      }))
       .catch(error => {
         console.error(
           "MangaUpdates background request failed:",
           error
         );
 
-        sendResponse({
+        return {
           ok: false,
           error:
             error?.message ||
             "Unknown MangaUpdates error"
-        });
+        };
       });
-
-    return true;
   }
 );
