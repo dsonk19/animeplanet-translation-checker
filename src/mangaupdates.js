@@ -1,67 +1,77 @@
-const extensionApi =
-  globalThis.browser ?? globalThis.chrome;
+const REQUEST_EVENT =
+  "ap-translation-checker-request";
 
-const MESSAGE_PORT_NAME =
-  "animeplanet-mangaupdates";
+const RESPONSE_EVENT =
+  "ap-translation-checker-response";
 
 const MESSAGE_TIMEOUT = 20000;
 
+let nextRequestId = 1;
+
 function sendRuntimeMessage(message) {
   return new Promise((resolve, reject) => {
-    const port = extensionApi.runtime.connect({
-      name: MESSAGE_PORT_NAME
-    });
+    const requestId =
+      `${Date.now()}-${nextRequestId}`;
 
-    let settled = false;
+    nextRequestId += 1;
 
     const cleanup = () => {
       globalThis.clearTimeout(timeout);
-      port.onMessage.removeListener(onMessage);
-      port.onDisconnect.removeListener(onDisconnect);
+      document.removeEventListener(
+        RESPONSE_EVENT,
+        onResponse
+      );
     };
 
-    const finish = (action, value) => {
-      if (settled) {
+    const onResponse = event => {
+      let detail;
+
+      try {
+        detail = JSON.parse(event.detail);
+      } catch {
         return;
       }
 
-      settled = true;
+      if (detail.requestId !== requestId) {
+        return;
+      }
+
       cleanup();
-      action(value);
-    };
 
-    const onMessage = response => {
-      finish(resolve, response);
-      port.disconnect();
-    };
+      if (detail.error) {
+        reject(new Error(detail.error));
+        return;
+      }
 
-    const onDisconnect = () => {
-      const error =
-        extensionApi.runtime.lastError;
-
-      finish(
-        reject,
-        new Error(
-          error?.message ||
-          "MangaUpdates connection closed before responding."
-        )
-      );
+      resolve(detail.response);
     };
 
     const timeout = globalThis.setTimeout(() => {
-      finish(
-        reject,
+      cleanup();
+
+      reject(
         new Error(
-          "MangaUpdates background response timed out."
+          "MangaUpdates content bridge timed out."
         )
       );
-
-      port.disconnect();
     }, MESSAGE_TIMEOUT);
 
-    port.onMessage.addListener(onMessage);
-    port.onDisconnect.addListener(onDisconnect);
-    port.postMessage(message);
+    document.addEventListener(
+      RESPONSE_EVENT,
+      onResponse
+    );
+
+    document.dispatchEvent(
+      new CustomEvent(
+        REQUEST_EVENT,
+        {
+          detail: JSON.stringify({
+            requestId,
+            message
+          })
+        }
+      )
+    );
   });
 }
 
